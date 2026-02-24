@@ -101,6 +101,24 @@
 - Provides specific recommendations for meeting goals
 - Tracks goal vs actual performance
 
+## 🔧 Recent Fixes (v1.1)
+
+### Dynamic Calendar
+- Calendar grid now rebuilds dynamically when navigating weeks
+- Next/Previous week buttons properly update all dates
+- Dates accurately reflect past/present/future weeks
+- Week label shows correct date ranges
+
+### Habit Dropdown
+- Dynamically populated from API in real-time
+- Updates when new habits are created
+- Shows all available habits
+
+### Better Performance
+- Improved event delegation for calendar clicks
+- More reliable interactions
+- Optimized date calculations
+
 ## 📝 Next Steps
 
 - [ ] Push updated code to GitHub

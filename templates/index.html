@@ -51,15 +51,18 @@
         <div class="section">
             <div class="section-header">
                 <h2>📅 Weekly Goals</h2>
-                <button id="add-goal-btn" class="btn btn-primary">+ Add Goal</button>
+                <div class="header-buttons">
+                    <button id="add-habit-btn" class="btn btn-primary">+ Add Habit</button>
+                    <button id="add-goal-btn" class="btn btn-primary">+ Add Goal</button>
+                </div>
             </div>
 
             <div id="calendar" class="calendar-grid">
                 <!-- Calendar will be built dynamically by JavaScript -->
             </div>
-            
-            <!-- Today's Habits (Now syncs with weekly view) -->
-            <div class="today-habits-section">
+
+            <!-- Today's Habits (moved here) -->
+            <div class="today-habits-wrapper">
                 <h3>✅ Quick Check - Today's Habits</h3>
                 <div id="habits-list" class="habits-list-inline">
                     {% for habit in habits %}
@@ -190,6 +193,21 @@
             { "id": {{ habit.id }}, "name": "{{ habit.name }}", "color": "{{ habit.color }}" },
             {% endfor %}
         ];
+        
+        // Store streaks and today_logs for habit list
+        window.streaks = [
+            {% for streak in streaks %}
+            { "id": {{ streak.id }}, "current_streak": {{ streak.current_streak }} },
+            {% endfor %}
+        ];
+        
+        window.todayLogs = {
+            {% for log in logs %}
+            {% if log.date == today %}
+            {{ log.habit_id }}: { "completed": {{ "true" if log.completed else "false" }} },
+            {% endif %}
+            {% endfor %}
+        };
     </script>
     <script src="/static/app.js"></script>
 </body>

@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
         isInitialized = true;
         console.log('Initialization complete');
+        rebuildHabitsList();
     });
 });
 
@@ -61,21 +62,74 @@ function updateHabitInput() {
     if (goalHabitInput) {
         // Clear existing options and datalist
         goalHabitInput.innerHTML = '';
-        
+
         // Create datalist for autocomplete
         const datalist = document.createElement('datalist');
         datalist.id = 'habit-datalist';
-        
+
         habits.forEach(habit => {
             const option = document.createElement('option');
             option.value = habit.name;
             datalist.appendChild(option);
         });
-        
+
         // Update input to use datalist
         goalHabitInput.setAttribute('list', 'habit-datalist');
         goalHabitInput.parentNode.insertBefore(datalist, goalHabitInput);
     }
+}
+
+// Rebuild habits list for Today's section
+function rebuildHabitsList() {
+    const habitsList = document.getElementById('habits-list');
+    if (!habitsList) {
+        console.error('Habits list container not found');
+        return;
+    }
+
+    habitsList.innerHTML = '';
+
+    if (habits.length === 0) {
+        habitsList.innerHTML = '<div class="empty-state"><p>No habits yet. Add your first habit! 🚀</p></div>';
+        return;
+    }
+
+    habits.forEach(habit => {
+        const habitCard = document.createElement('div');
+        habitCard.className = 'habit-card-inline';
+        habitCard.style.borderLeft = `4px solid ${habit.color}`;
+
+        // Build habit card HTML
+        habitCard.innerHTML = `
+            <div class="habit-header-inline">
+                <span class="habit-name-inline">${habit.name}</span>
+                <button class="btn-delete-inline" data-habit-id="${habit.id}">Delete</button>
+            </div>
+            <div class="habit-streak-inline">
+                ${window.streaks && window.streaks.find(s => s.id === habit.id && s.current_streak > 0)
+                    ? `<span class="streak-badge">🔥 ${window.streaks.find(s => s.id === habit.id).current_streak} day streak</span>`
+                    : ''}
+            </div>
+            <div class="habit-status-inline">
+                <label class="checkbox">
+                    <input type="checkbox" data-habit-id="${habit.id}"
+                        ${window.todayLogs && window.todayLogs[habit.id] && window.todayLogs[habit.id].completed ? 'checked' : ''}>
+                    <span>Completed today</span>
+                </label>
+            </div>
+        `;
+
+        // Add event listener for delete button
+        const deleteBtn = habitCard.querySelector('.btn-delete-inline');
+        deleteBtn.addEventListener('click', async (e) => {
+            const habitId = parseInt(e.target.dataset.habitId);
+            if (confirm('Are you sure you want to delete this habit?')) {
+                await deleteHabit(habitId);
+            }
+        });
+
+        habitsList.appendChild(habitCard);
+    });
 }
 
 // Event Listeners
@@ -386,7 +440,7 @@ async function addHabit() {
         if (response.ok) {
             addHabitForm.reset();
             addHabitModal.classList.remove('active');
-            fetchHabits(); // Refresh habits list
+            fetchHabits().then(() => rebuildHabitsList()); // Refresh habits list and rebuild
         } else {
             alert('Failed to add habit');
         }

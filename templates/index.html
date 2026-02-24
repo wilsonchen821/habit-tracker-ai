@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Habit Tracker AI</h1>
+            <p class="subtitle">Track habits, set goals, get AI insights</p>
+        </header>
+
+        <!-- Week Navigation -->
+        <div class="week-nav">
+            <button id="prev-week" class="btn btn-secondary">&larr; Previous</button>
+            <div id="week-label">This Week</div>
+            <button id="next-week" class="btn btn-secondary">Next &rarr;</button>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ "%.0f"|format(stats.completion_rate * 100) }}%</div>
+                <div class="stat-label">Completion Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_logs }}</div>
+                <div class="stat-label">Total Logs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.completed }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+
+        <!-- AI Insights -->
+        <div class="section">
+            <div class="section-header">
+                <h2>🤖 AI Insights</h2>
+                <button id="refresh-insights" class="btn btn-secondary">Refresh</button>
+            </div>
+            <div id="insights" class="insights-box">
+                Loading insights...
+            </div>
+        </div>
+
+        <!-- Weekly Goals Calendar -->
+        <div class="section">
+            <div class="section-header">
+                <h2>📅 Weekly Goals</h2>
+                <button id="add-goal-btn" class="btn btn-primary">+ Add Goal</button>
+            </div>
+
+            <div id="calendar" class="calendar-grid">
+                {% for day_date in week_dates %}
+                <div class="calendar-day" data-date="{{ day_date.isoformat() }}">
+                    <div class="day-header">
+                        <div class="day-name">{{ ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][day_date.weekday()] }}</div>
+                        <div class="day-date">{{ day_date.strftime("%m/%d") }}</div>
+                    </div>
+                    <div class="day-goals" id="day-goals-{{ day_date.isoformat() }}">
+                        <!-- Goals will be loaded here -->
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Habits -->
+        <div class="section">
+            <div class="section-header">
+                <h2>✅ Today's Habits</h2>
+                <button id="add-habit-btn" class="btn btn-primary">+ Add Habit</button>
+            </div>
+
+            <div id="habits-list" class="habits-list">
+                {% for habit in habits %}
+                <div class="habit-card" style="border-left: 4px solid {{ habit.color }}">
+                    <div class="habit-header">
+                        <h3>{{ habit.name }}</h3>
+                        <button class="btn-delete" data-habit-id="{{ habit.id }}">Delete</button>
+                    </div>
+                    <div class="habit-status">
+                        <label class="checkbox">
+                            <input type="checkbox" data-habit-id="{{ habit.id }}"
+                                {% if today_logs.get(habit.id) and today_logs[habit.id].completed %}checked{% endif %}>
+                            <span>Completed today</span>
+                        </label>
+                    </div>
+                    <div class="habit-streak">
+                        {% for streak in streaks if streak.id == habit.id %}
+                            {% if streak.current_streak > 0 %}
+                                <span class="streak-badge">🔥 {{ streak.current_streak }} day streak</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if not habits %}
+                <div class="empty-state">
+                    <p>No habits yet. Add your first habit above! 🚀</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="section">
+            <h2>📊 Recent Activity</h2>
+            <div id="recent-activity" class="activity-list">
+                {% for log in logs[:10] %}
+                <div class="activity-item">
+                    <span class="activity-date">{{ log.date }}</span>
+                    <span class="activity-habit" style="color: {{ log.habit_color }}">
+                        {{ log.habit_name }}
+                    </span>
+                    <span class="activity-status">
+                        {{ "✓" if log.completed else "✗" }}
+                    </span>
+                </div>
+                {% endfor %}
+
+                {% if not logs %}
+                <div class="empty-state">
+                    <p>No activity yet. Start tracking your habits! 🎯</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Habit Modal -->
+    <div id="add-habit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Habit</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="add-habit-form">
+                <div class="form-group">
+                    <label for="habit-name">Habit Name</label>
+                    <input type="text" id="habit-name" required placeholder="e.g., Exercise, Read, Code">
+                </div>
+                <div class="form-group">
+                    <label for="habit-color">Color</label>
+                    <input type="color" id="habit-color" value="#007bff">
+                </div>
+                <button type="submit" class="btn btn-primary">Add Habit</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Goal Modal -->
+    <div id="add-goal-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Goal</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="add-goal-form">
+                <div class="form-group">
+                    <label for="goal-habit">Habit</label>
+                    <select id="goal-habit" required>
+                        <option value="">Select a habit...</option>
+                        {% for habit in habits %}
+                        <option value="{{ habit.id }}">{{ habit.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="goal-date">Date</label>
+                    <input type="date" id="goal-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="goal-target">Target Count</label>
+                    <input type="number" id="goal-target" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="goal-notes">Notes (optional)</label>
+                    <textarea id="goal-notes" rows="2" placeholder="Add any notes..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Goal</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

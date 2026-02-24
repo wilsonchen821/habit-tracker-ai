@@ -49,20 +49,26 @@ async function fetchHabits() {
     }
 }
 
-// Update habit input with autocomplete
+// Update habit input with datalist
 function updateHabitInput() {
     const goalHabitInput = document.getElementById('goal-habit');
     if (goalHabitInput) {
-        // Clear existing options
-        goalHabitInput.innerHTML = '<option value="">Select a habit...</option>';
-
-        // Add habits as options
+        // Clear existing options and datalist
+        goalHabitInput.innerHTML = '';
+        
+        // Create datalist for autocomplete
+        const datalist = document.createElement('datalist');
+        datalist.id = 'habit-datalist';
+        
         habits.forEach(habit => {
             const option = document.createElement('option');
-            option.value = habit.id;
-            option.textContent = habit.name;
-            goalHabitInput.appendChild(option);
+            option.value = habit.name;
+            datalist.appendChild(option);
         });
+        
+        // Update input to use datalist
+        goalHabitInput.setAttribute('list', 'habit-datalist');
+        goalHabitInput.parentNode.insertBefore(datalist, goalHabitInput);
     }
 }
 
@@ -263,13 +269,17 @@ function updateWeekLabel(offset, startDate, endDate) {
 function getWeekStartDate(offset) {
     const today = new Date();
     const dayOfWeek = today.getDay();
-    const startOfWeek = new Date(today);
-    // Calculate days to go back to Monday
+    
+    // Get Monday of the current week
+    const currentWeekMonday = new Date(today);
     const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    currentWeekMonday.setDate(today.getDate() - daysToMonday);
+    
     // Apply week offset
-    const totalOffset = daysToMonday + (offset * 7);
-    startOfWeek.setDate(today.getDate() - totalOffset);
-    return startOfWeek;
+    const targetMonday = new Date(currentWeekMonday);
+    targetMonday.setDate(currentWeekMonday.getDate() + (offset * 7));
+    
+    return targetMonday;
 }
 
 // Open day goals modal
@@ -382,13 +392,20 @@ async function logHabit(habitId, completed) {
 }
 
 async function addGoal() {
-    const habitId = parseInt(document.getElementById('goal-habit').value);
+    const habitName = document.getElementById('goal-habit').value.trim();
     const goalDate = document.getElementById('goal-date').value;
     const targetCount = parseInt(document.getElementById('goal-target').value);
     const notes = document.getElementById('goal-notes').value.trim();
 
-    if (!habitId || !goalDate || !targetCount) {
+    if (!habitName || !goalDate || !targetCount) {
         alert('Please fill in all required fields');
+        return;
+    }
+
+    // Find habit by name
+    const habit = habits.find(h => h.name.toLowerCase() === habitName.toLowerCase());
+    if (!habit) {
+        alert('Habit not found. Please select a valid habit.');
         return;
     }
 
@@ -397,7 +414,7 @@ async function addGoal() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                habit_id: habitId,
+                habit_id: habit.id,
                 goal_date: goalDate,
                 target_count: targetCount,
                 notes: notes

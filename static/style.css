@@ -211,6 +211,76 @@ header h1 {
     font-weight: 500;
 }
 
+/* Today's Habits Inline (for weekly view) */
+.today-habits-section {
+    margin-top: 30px;
+}
+
+.today-habits-section h3 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.habits-list-inline {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.habit-card-inline {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.2s;
+}
+
+.habit-card-inline:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.habit-header-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.habit-name-inline {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+}
+
+.btn-delete-inline {
+    background: #ff4757;
+    color: white;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+}
+
+.btn-delete-inline:hover {
+    background: #ff3344;
+}
+
+.habit-streak-inline {
+    margin-bottom: 10px;
+}
+
+.habit-status-inline {
+    margin-top: 10px;
+}
+
+.habit-status-inline .checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+}
+
+.habit-status-inline .checkbox span {
+    font-size: 0.85rem;
+}
+
 /* Activity List */
 .activity-list {
     display: flex;

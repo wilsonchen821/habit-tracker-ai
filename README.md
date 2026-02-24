@@ -9,10 +9,13 @@ An intelligent habit tracking application that uses AI to analyze your habits an
 ## ✨ Features
 
 - **Daily Habit Tracking**: Log your habits daily with simple checkboxes
-- **AI-Powered Insights**: Get personalized recommendations based on your habit patterns
+- **Weekly Goal Planning**: Set goals for specific days or the entire week
+- **Calendar View**: Visualize your week with goal progress
+- **Goal vs Achievement**: Track how well you meet your goals
+- **AI-Powered Insights**: Get personalized recommendations based on your habit patterns and goals
 - **Streak Tracking**: Monitor your streaks and stay motivated
 - **Statistics Dashboard**: View completion rates and overall progress
-- **Beautiful UI**: Clean, responsive web interface
+- **Beautiful UI**: Clean, responsive web interface with calendar
 - **Local Storage**: All data stored locally in SQLite
 
 ## 🚀 Quick Start
@@ -79,6 +82,22 @@ http://localhost:8000
 - Your streak will update automatically
 - View your recent activity in the dashboard
 
+### Setting Goals
+
+1. Click "+ Add Goal" button
+2. Select a habit from the dropdown
+3. Choose a date (default is today)
+4. Set target count (e.g., complete exercise 3 times this week)
+5. Add optional notes
+6. Click "Add Goal"
+
+### Using Calendar
+
+- Weekly calendar shows all your goals
+- Navigate between weeks using Previous/Next buttons
+- See goal progress with progress bars
+- Goals show as "✓ Achieved!" when completed
+
 ### AI Insights
 
 - Click "Refresh" to generate new insights
@@ -121,6 +140,13 @@ habit-tracker-ai/
 ### Logs
 - `POST /api/logs` - Log a habit completion
 - `GET /api/habits/{id}/logs` - Get habit logs
+
+### Goals
+- `POST /api/goals` - Create a new goal
+- `GET /api/goals` - Get all goals (with optional filters)
+- `GET /api/goals/weekly` - Get goals for current week
+- `GET /api/goals/{id}/progress` - Get progress for a specific goal
+- `DELETE /api/goals/{id}` - Delete a goal
 
 ### Stats & Insights
 - `GET /api/stats` - Get statistics

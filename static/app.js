@@ -25,14 +25,46 @@ const dayGoalsList = document.getElementById('day-goals-list');
 const addGoalFromDayBtn = document.getElementById('add-goal-from-day');
 
 // Current week offset (0 = current week)
-let weekOffset = window.currentWeekOffset || 0;
+let weekOffset = 0;
 let selectedDate = null;
+let habits = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadInsights();
+    fetchHabits();
+    navigateToWeek(0);
     setupEventListeners();
 });
+
+// Fetch habits
+async function fetchHabits() {
+    try {
+        const response = await fetch(`${API_BASE}/habits`);
+        const data = await response.json();
+        habits = data.habits || [];
+        updateHabitInput();
+    } catch (error) {
+        console.error('Error fetching habits:', error);
+    }
+}
+
+// Update habit input with autocomplete
+function updateHabitInput() {
+    const goalHabitInput = document.getElementById('goal-habit');
+    if (goalHabitInput) {
+        // Clear existing options
+        goalHabitInput.innerHTML = '<option value="">Select a habit...</option>';
+
+        // Add habits as options
+        habits.forEach(habit => {
+            const option = document.createElement('option');
+            option.value = habit.id;
+            option.textContent = habit.name;
+            goalHabitInput.appendChild(option);
+        });
+    }
+}
 
 // Event Listeners
 function setupEventListeners() {
@@ -108,18 +140,22 @@ function setupEventListeners() {
     });
 
     // Calendar day clicks
-    document.querySelectorAll('.calendar-day').forEach(day => {
-        day.addEventListener('click', () => {
-            const dateStr = day.dataset.date;
+    calendarGrid.addEventListener('click', (e) => {
+        const dayCard = e.target.closest('.calendar-day');
+        if (dayCard) {
+            const dateStr = dayCard.dataset.date;
             openDayGoals(dateStr);
-        });
+        }
     });
 
     // Add goal from day modal
     addGoalFromDayBtn.addEventListener('click', () => {
         if (selectedDate) {
             // Set the date in the add goal form
-            document.getElementById('goal-date').value = selectedDate;
+            const goalDateInput = document.getElementById('goal-date');
+            if (goalDateInput) {
+                goalDateInput.value = selectedDate;
+            }
             dayGoalsModal.classList.remove('active');
             addGoalModal.classList.add('active');
         }
@@ -128,19 +164,30 @@ function setupEventListeners() {
 
 // Navigate to a specific week
 async function navigateToWeek(offset) {
-    const startDate = getWeekStartDate(offset);
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 6);
+    weekOffset = offset;
 
+    const startDate = getWeekStartDate(offset);
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        weekDates.push(date);
+    }
+
+    const endDate = weekDates[6];
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
 
+    // Update week label
+    updateWeekLabel(offset, startDate, endDate);
+
+    // Rebuild calendar grid with new dates
+    rebuildCalendarGrid(weekDates);
+
+    // Fetch and display goals
     try {
         const response = await fetch(`${API_BASE}/goals?start_date=${startDateStr}&end_date=${endDateStr}`);
         const data = await response.json();
-
-        // Update week label
-        updateWeekLabel(offset, startDate, endDate);
 
         // Clear existing goals from calendar
         document.querySelectorAll('.day-goals').forEach(day => {
@@ -159,6 +206,40 @@ async function navigateToWeek(offset) {
     } catch (error) {
         console.error('Error loading week goals:', error);
     }
+}
+
+// Rebuild calendar grid with new dates
+function rebuildCalendarGrid(weekDates) {
+    calendarGrid.innerHTML = '';
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    weekDates.forEach((date, index) => {
+        const dayCard = document.createElement('div');
+        dayCard.className = 'calendar-day clickable';
+        dayCard.dataset.date = date.toISOString().split('T')[0];
+
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'day-header';
+
+        const dayName = document.createElement('div');
+        dayName.className = 'day-name';
+        dayName.textContent = dayNames[index];
+
+        const dayDateEl = document.createElement('div');
+        dayDateEl.className = 'day-date';
+        dayDateEl.textContent = date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+
+        dayHeader.appendChild(dayName);
+        dayHeader.appendChild(dayDateEl);
+
+        const dayGoals = document.createElement('div');
+        dayGoals.className = 'day-goals';
+        dayGoals.id = `day-goals-${date.toISOString().split('T')[0]}`;
+
+        dayCard.appendChild(dayHeader);
+        dayCard.appendChild(dayGoals);
+        calendarGrid.appendChild(dayCard);
+    });
 }
 
 // Update week label
@@ -183,7 +264,11 @@ function getWeekStartDate(offset) {
     const today = new Date();
     const dayOfWeek = today.getDay();
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1) + (offset * 7));
+    // Calculate days to go back to Monday
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    // Apply week offset
+    const totalOffset = daysToMonday + (offset * 7);
+    startOfWeek.setDate(today.getDate() - totalOffset);
     return startOfWeek;
 }
 
@@ -250,7 +335,7 @@ async function addHabit() {
         if (response.ok) {
             addHabitForm.reset();
             addHabitModal.classList.remove('active');
-            location.reload();
+            fetchHabits(); // Refresh habits list
         } else {
             alert('Failed to add habit');
         }
@@ -322,8 +407,7 @@ async function addGoal() {
         if (response.ok) {
             addGoalForm.reset();
             addGoalModal.classList.remove('active');
-
-            // Reload goals for current week
+            // Reload current week
             navigateToWeek(weekOffset);
         } else {
             alert('Failed to add goal');
@@ -345,7 +429,7 @@ async function deleteGoal(goalId) {
         });
 
         if (response.ok) {
-            // Refresh goals for current view
+            // Refresh current view
             if (selectedDate) {
                 openDayGoals(selectedDate);
             } else {
@@ -420,8 +504,3 @@ function updateStreakDisplay(habitId) {
         location.reload();
     }, 500);
 }
-
-// Initial load for current week
-document.addEventListener('DOMContentLoaded', () => {
-    navigateToWeek(0);
-});

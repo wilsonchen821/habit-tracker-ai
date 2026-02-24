@@ -55,17 +55,7 @@
             </div>
 
             <div id="calendar" class="calendar-grid">
-                {% for day_date in week_dates %}
-                <div class="calendar-day clickable" data-date="{{ day_date.isoformat() }}">
-                    <div class="day-header">
-                        <div class="day-name">{{ ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][day_date.weekday()] }}</div>
-                        <div class="day-date">{{ day_date.strftime("%m/%d") }}</div>
-                    </div>
-                    <div class="day-goals" id="day-goals-{{ day_date.isoformat() }}">
-                        <!-- Goals will be loaded here -->
-                    </div>
-                </div>
-                {% endfor %}
+                <!-- Calendar will be built dynamically by JavaScript -->
             </div>
         </div>
 
@@ -166,9 +156,7 @@
                     <label for="goal-habit">Habit</label>
                     <select id="goal-habit" required>
                         <option value="">Select a habit...</option>
-                        {% for habit in habits %}
-                        <option value="{{ habit.id }}">{{ habit.name }}</option>
-                        {% endfor %}
+                        <!-- Options will be populated by JavaScript -->
                     </select>
                 </div>
                 <div class="form-group">
@@ -203,16 +191,8 @@
     </div>
 
     <script>
-        // Current week info
-        window.currentWeekOffset = 0;
-        window.currentWeekDates = [
-            {% for day_date in week_dates %}
-            "{{ day_date.isoformat() }}",
-            {% endfor %}
-        ];
-
-        // Store habit data for modal
-        window.habits = [
+        // Store initial data from server
+        window.initialHabits = [
             {% for habit in habits %}
             { "id": {{ habit.id }}, "name": "{{ habit.name }}", "color": "{{ habit.color }}" },
             {% endfor %}

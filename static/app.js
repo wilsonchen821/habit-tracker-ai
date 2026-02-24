@@ -24,10 +24,19 @@ const dayModalTitle = document.getElementById('day-modal-title');
 const dayGoalsList = document.getElementById('day-goals-list');
 const addGoalFromDayBtn = document.getElementById('add-goal-from-day');
 
+// Today's habits dropdown and details
+const habitDropdown = document.getElementById('habit-dropdown');
+const selectedHabitDetails = document.getElementById('selected-habit-details');
+const selectedHabitName = document.getElementById('selected-habit-name');
+const deleteSelectedHabitBtn = document.getElementById('delete-selected-habit');
+const selectedHabitCheckbox = document.getElementById('selected-habit-checkbox');
+const selectedHabitStreak = document.getElementById('selected-habit-streak');
+
 // Current week offset (0 = current week)
 let weekOffset = 0;
 let selectedDate = null;
 let habits = [];
+let selectedHabit = null;
 let isInitialized = false;
 
 // Initialize
@@ -39,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
         isInitialized = true;
         console.log('Initialization complete');
-        rebuildHabitsList();
     });
 });
 
@@ -50,86 +58,86 @@ async function fetchHabits() {
         const data = await response.json();
         habits = data.habits || [];
         console.log('Habits loaded:', habits);
-        updateHabitInput();
+        updateHabitDropdown();
     } catch (error) {
         console.error('Error fetching habits:', error);
     }
 }
 
-// Update habit input with datalist
-function updateHabitInput() {
-    const goalHabitInput = document.getElementById('goal-habit');
-    if (goalHabitInput) {
-        // Clear existing options and datalist
-        goalHabitInput.innerHTML = '';
+// Update habit dropdown (for Today's section)
+function updateHabitDropdown() {
+    if (!habitDropdown) {
+        console.error('Habit dropdown not found');
+        return;
+    }
 
-        // Create datalist for autocomplete
-        const datalist = document.createElement('datalist');
-        datalist.id = 'habit-datalist';
+    // Save current selection
+    const currentValue = habitDropdown.value;
 
-        habits.forEach(habit => {
-            const option = document.createElement('option');
-            option.value = habit.name;
-            datalist.appendChild(option);
-        });
+    habitDropdown.innerHTML = '<option value="">Select a habit to check off...</option>';
 
-        // Update input to use datalist
-        goalHabitInput.setAttribute('list', 'habit-datalist');
-        goalHabitInput.parentNode.insertBefore(datalist, goalHabitInput);
+    habits.forEach(habit => {
+        const option = document.createElement('option');
+        option.value = habit.id;
+        option.textContent = habit.name;
+        
+        // Add streak info if available
+        const streak = window.streaks && window.streaks.find(s => s.id === habit.id);
+        if (streak && streak.current_streak > 0) {
+            option.textContent += ` (🔥 ${streak.current_streak} day streak)`;
+        }
+        
+        habitDropdown.appendChild(option);
+    });
+
+    // Restore selection if still valid
+    if (currentValue && habits.find(h => h.id === parseInt(currentValue))) {
+        habitDropdown.value = currentValue;
     }
 }
 
-// Rebuild habits list for Today's section
-function rebuildHabitsList() {
-    const habitsList = document.getElementById('habits-list');
-    if (!habitsList) {
-        console.error('Habits list container not found');
+// Show habit details (from dropdown selection)
+function showHabitDetails(habitId) {
+    if (!habitId) {
+        hideHabitDetails();
         return;
     }
 
-    habitsList.innerHTML = '';
-
-    if (habits.length === 0) {
-        habitsList.innerHTML = '<div class="empty-state"><p>No habits yet. Add your first habit! 🚀</p></div>';
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) {
+        console.error('Habit not found:', habitId);
         return;
     }
 
-    habits.forEach(habit => {
-        const habitCard = document.createElement('div');
-        habitCard.className = 'habit-card-inline';
-        habitCard.style.borderLeft = `4px solid ${habit.color}`;
+    selectedHabit = habit;
+    selectedHabitDetails.style.display = 'block';
+    selectedHabitDetails.style.borderLeft = `4px solid ${habit.color}`;
+    
+    // Update name
+    selectedHabitName.textContent = habit.name;
+    
+    // Update streak
+    const streak = window.streaks && window.streaks.find(s => s.id === habitId);
+    if (streak && streak.current_streak > 0) {
+        selectedHabitStreak.innerHTML = `<span class="streak-badge">🔥 ${streak.current_streak} day streak</span>`;
+    } else {
+        selectedHabitStreak.innerHTML = '';
+    }
+    
+    // Update checkbox
+    const todayLog = window.todayLogs && window.todayLogs[habitId];
+    selectedHabitCheckbox.checked = todayLog && todayLog.completed;
+    selectedHabitCheckbox.dataset.habitId = habitId;
+    
+    console.log('Showing habit details:', habit.name);
+}
 
-        // Build habit card HTML
-        habitCard.innerHTML = `
-            <div class="habit-header-inline">
-                <span class="habit-name-inline">${habit.name}</span>
-                <button class="btn-delete-inline" data-habit-id="${habit.id}">Delete</button>
-            </div>
-            <div class="habit-streak-inline">
-                ${window.streaks && window.streaks.find(s => s.id === habit.id && s.current_streak > 0)
-                    ? `<span class="streak-badge">🔥 ${window.streaks.find(s => s.id === habit.id).current_streak} day streak</span>`
-                    : ''}
-            </div>
-            <div class="habit-status-inline">
-                <label class="checkbox">
-                    <input type="checkbox" data-habit-id="${habit.id}"
-                        ${window.todayLogs && window.todayLogs[habit.id] && window.todayLogs[habit.id].completed ? 'checked' : ''}>
-                    <span>Completed today</span>
-                </label>
-            </div>
-        `;
-
-        // Add event listener for delete button
-        const deleteBtn = habitCard.querySelector('.btn-delete-inline');
-        deleteBtn.addEventListener('click', async (e) => {
-            const habitId = parseInt(e.target.dataset.habitId);
-            if (confirm('Are you sure you want to delete this habit?')) {
-                await deleteHabit(habitId);
-            }
-        });
-
-        habitsList.appendChild(habitCard);
-    });
+// Hide habit details
+function hideHabitDetails() {
+    selectedHabit = null;
+    selectedHabitDetails.style.display = 'none';
+    selectedHabitCheckbox.checked = false;
+    console.log('Hiding habit details');
 }
 
 // Event Listeners
@@ -187,24 +195,32 @@ function setupEventListeners() {
         });
     }
 
-    // Habit checkboxes
-    document.addEventListener('change', async (e) => {
-        if (e.target.type === 'checkbox' && e.target.dataset.habitId) {
-            const habitId = parseInt(e.target.dataset.habitId);
-            const completed = e.target.checked;
-            await logHabit(habitId, completed);
-        }
-    });
+    // Habit dropdown selection
+    if (habitDropdown) {
+        habitDropdown.addEventListener('change', () => {
+            const habitId = parseInt(habitDropdown.value);
+            showHabitDetails(habitId);
+        });
+    }
 
-    // Delete habit buttons
-    document.addEventListener('click', async (e) => {
-        if ((e.target.classList.contains('btn-delete') || e.target.classList.contains('btn-delete-inline')) && !e.target.classList.contains('btn-delete-goal')) {
-            const habitId = parseInt(e.target.dataset.habitId);
-            if (confirm('Are you sure you want to delete this habit?')) {
-                await deleteHabit(habitId);
+    // Habit checkboxes (in selected habit details)
+    if (selectedHabitCheckbox) {
+        selectedHabitCheckbox.addEventListener('change', async (e) => {
+            if (selectedHabit) {
+                const completed = e.target.checked;
+                await logHabit(selectedHabit, completed);
             }
-        }
-    });
+        });
+    }
+
+    // Delete selected habit button
+    if (deleteSelectedHabitBtn) {
+        deleteSelectedHabitBtn.addEventListener('click', async () => {
+            if (selectedHabit && confirm('Are you sure you want to delete this habit?')) {
+                await deleteHabit(selectedHabit);
+            }
+        });
+    }
 
     // Refresh insights
     if (refreshInsightsBtn) {
@@ -440,7 +456,9 @@ async function addHabit() {
         if (response.ok) {
             addHabitForm.reset();
             addHabitModal.classList.remove('active');
-            fetchHabits().then(() => rebuildHabitsList()); // Refresh habits list and rebuild
+            fetchHabits().then(() => {
+                updateHabitDropdown();
+            });
         } else {
             alert('Failed to add habit');
         }
@@ -476,9 +494,18 @@ async function logHabit(habitId, completed) {
         });
 
         if (response.ok) {
-            updateStreakDisplay(habitId);
+            // Update selected habit details if visible
+            if (selectedHabit && selectedHabit === habitId) {
+                const checkbox = document.getElementById('selected-habit-checkbox');
+                if (checkbox) {
+                    checkbox.checked = completed;
+                }
+            }
         } else {
-            alert('Failed to log habit');
+            // Reload page to update streaks
+            setTimeout(() => {
+                location.reload();
+            }, 500);
         }
     } catch (error) {
         console.error('Error logging habit:', error);
@@ -487,20 +514,13 @@ async function logHabit(habitId, completed) {
 }
 
 async function addGoal() {
-    const habitName = document.getElementById('goal-habit').value.trim();
+    const habitId = parseInt(document.getElementById('goal-habit').value);
     const goalDate = document.getElementById('goal-date').value;
     const targetCount = parseInt(document.getElementById('goal-target').value);
     const notes = document.getElementById('goal-notes').value.trim();
 
-    if (!habitName || !goalDate || !targetCount) {
+    if (!habitId || !goalDate || !targetCount) {
         alert('Please fill in all required fields');
-        return;
-    }
-
-    // Find habit by name
-    const habit = habits.find(h => h.name.toLowerCase() === habitName.toLowerCase());
-    if (!habit) {
-        alert('Habit not found. Please select a valid habit.');
         return;
     }
 
@@ -509,7 +529,7 @@ async function addGoal() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                habit_id: habit.id,
+                habit_id: habitId,
                 goal_date: goalDate,
                 target_count: targetCount,
                 notes: notes
@@ -605,14 +625,9 @@ function createGoalCard(goal, inModal = false) {
 
     // Delete goal button handler
     const deleteBtn = card.querySelector('.btn-delete-goal');
-    deleteBtn.addEventListener('click', () => deleteGoal(goal.id));
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => deleteGoal(goal.id));
+    }
 
     return card;
-}
-
-function updateStreakDisplay(habitId) {
-    // Reload page to update streaks
-    setTimeout(() => {
-        location.reload();
-    }, 500);
 }

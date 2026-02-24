@@ -61,38 +61,29 @@
                 <!-- Calendar will be built dynamically by JavaScript -->
             </div>
 
-            <!-- Today's Habits (moved here) -->
+            <!-- Today's Habits (Dropdown) -->
             <div class="today-habits-wrapper">
-                <h3>✅ Quick Check - Today's Habits</h3>
-                <div id="habits-list" class="habits-list-inline">
-                    {% for habit in habits %}
-                    <div class="habit-card-inline" style="border-left: 4px solid {{ habit.color }}">
-                        <div class="habit-header-inline">
-                            <span class="habit-name-inline">{{ habit.name }}</span>
-                            <button class="btn-delete-inline" data-habit-id="{{ habit.id }}">Delete</button>
-                        </div>
-                        <div class="habit-streak-inline">
-                            {% for streak in streaks if streak.id == habit.id %}
-                                {% if streak.current_streak > 0 %}
-                                    <span class="streak-badge">🔥 {{ streak.current_streak }} day streak</span>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                        <div class="habit-status-inline">
+                <h3>✅ Today's Habits</h3>
+                <select id="habit-dropdown" class="habit-dropdown">
+                    <option value="">Select a habit to check off...</option>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+                
+                <!-- Selected Habit Details -->
+                <div id="selected-habit-details" class="selected-habit-details" style="display: none;">
+                    <div class="selected-habit-header">
+                        <h4 id="selected-habit-name">Habit Name</h4>
+                        <button id="delete-selected-habit" class="btn btn-delete">Delete</button>
+                    </div>
+                    <div class="selected-habit-actions">
+                        <div class="habit-status">
                             <label class="checkbox">
-                                <input type="checkbox" data-habit-id="{{ habit.id }}"
-                                    {% if today_logs.get(habit.id) and today_logs[habit.id].completed %}checked{% endif %}>
+                                <input type="checkbox" id="selected-habit-checkbox">
                                 <span>Completed today</span>
                             </label>
                         </div>
+                        <div class="habit-streak" id="selected-habit-streak"></div>
                     </div>
-                    {% endfor %}
-
-                    {% if not habits %}
-                    <div class="empty-state">
-                        <p>No habits yet. Add your first habit! 🚀</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -153,7 +144,12 @@
             <form id="add-goal-form">
                 <div class="form-group">
                     <label for="goal-habit">Habit</label>
-                    <input type="text" id="goal-habit" list="habit-datalist" required placeholder="Type to search habits...">
+                    <select id="goal-habit" required>
+                        <option value="">Select a habit...</option>
+                        {% for habit in habits %}
+                        <option value="{{ habit.id }}">{{ habit.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="goal-date">Date</label>
@@ -194,7 +190,7 @@
             {% endfor %}
         ];
         
-        // Store streaks and today_logs for habit list
+        // Store streaks and today_logs for habit dropdown
         window.streaks = [
             {% for streak in streaks %}
             { "id": {{ streak.id }}, "current_streak": {{ streak.current_streak }} },
@@ -202,10 +198,8 @@
         ];
         
         window.todayLogs = {
-            {% for log in logs %}
-            {% if log.date == today %}
+            {% for log in logs if log.date == today %}
             {{ log.habit_id }}: { "completed": {{ "true" if log.completed else "false" }} },
-            {% endif %}
             {% endfor %}
         };
     </script>

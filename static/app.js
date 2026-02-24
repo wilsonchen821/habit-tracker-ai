@@ -18,13 +18,19 @@ const weekLabel = document.getElementById('week-label');
 const prevWeekBtn = document.getElementById('prev-week');
 const nextWeekBtn = document.getElementById('next-week');
 
+// Day goals modal
+const dayGoalsModal = document.getElementById('day-goals-modal');
+const dayModalTitle = document.getElementById('day-modal-title');
+const dayGoalsList = document.getElementById('day-goals-list');
+const addGoalFromDayBtn = document.getElementById('add-goal-from-day');
+
 // Current week offset (0 = current week)
-let weekOffset = 0;
+let weekOffset = window.currentWeekOffset || 0;
+let selectedDate = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadInsights();
-    loadWeeklyGoals();
     setupEventListeners();
 });
 
@@ -93,13 +99,135 @@ function setupEventListeners() {
     // Week navigation
     prevWeekBtn.addEventListener('click', () => {
         weekOffset--;
-        updateWeekDisplay();
+        navigateToWeek(weekOffset);
     });
 
     nextWeekBtn.addEventListener('click', () => {
         weekOffset++;
-        updateWeekDisplay();
+        navigateToWeek(weekOffset);
     });
+
+    // Calendar day clicks
+    document.querySelectorAll('.calendar-day').forEach(day => {
+        day.addEventListener('click', () => {
+            const dateStr = day.dataset.date;
+            openDayGoals(dateStr);
+        });
+    });
+
+    // Add goal from day modal
+    addGoalFromDayBtn.addEventListener('click', () => {
+        if (selectedDate) {
+            // Set the date in the add goal form
+            document.getElementById('goal-date').value = selectedDate;
+            dayGoalsModal.classList.remove('active');
+            addGoalModal.classList.add('active');
+        }
+    });
+}
+
+// Navigate to a specific week
+async function navigateToWeek(offset) {
+    const startDate = getWeekStartDate(offset);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6);
+
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+
+    try {
+        const response = await fetch(`${API_BASE}/goals?start_date=${startDateStr}&end_date=${endDateStr}`);
+        const data = await response.json();
+
+        // Update week label
+        updateWeekLabel(offset, startDate, endDate);
+
+        // Clear existing goals from calendar
+        document.querySelectorAll('.day-goals').forEach(day => {
+            day.innerHTML = '';
+        });
+
+        // Add goals to calendar
+        data.goals.forEach(goal => {
+            const dayElement = document.getElementById(`day-goals-${goal.goal_date}`);
+            if (dayElement) {
+                const goalCard = createGoalCard(goal);
+                dayElement.appendChild(goalCard);
+            }
+        });
+
+    } catch (error) {
+        console.error('Error loading week goals:', error);
+    }
+}
+
+// Update week label
+function updateWeekLabel(offset, startDate, endDate) {
+    const options = { month: 'short', day: 'numeric' };
+    const startStr = startDate.toLocaleDateString('en-US', options);
+    const endStr = endDate.toLocaleDateString('en-US', options);
+
+    if (offset === 0) {
+        weekLabel.textContent = 'This Week';
+    } else if (offset === -1) {
+        weekLabel.textContent = 'Last Week';
+    } else if (offset === 1) {
+        weekLabel.textContent = 'Next Week';
+    } else {
+        weekLabel.textContent = `${startStr} - ${endStr}`;
+    }
+}
+
+// Get week start date
+function getWeekStartDate(offset) {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1) + (offset * 7));
+    return startOfWeek;
+}
+
+// Open day goals modal
+async function openDayGoals(dateStr) {
+    selectedDate = dateStr;
+    const date = new Date(dateStr);
+
+    // Update modal title
+    const options = { weekday: 'long', month: 'long', day: 'numeric' };
+    dayModalTitle.textContent = date.toLocaleDateString('en-US', options);
+
+    // Load goals for this date
+    try {
+        const response = await fetch(`${API_BASE}/goals?start_date=${dateStr}&end_date=${dateStr}`);
+        const data = await response.json();
+
+        // Clear existing goals
+        dayGoalsList.innerHTML = '';
+
+        if (data.goals.length === 0) {
+            dayGoalsList.innerHTML = '<p class="empty-state">No goals for this day</p>';
+        } else {
+            // Add goal progress to each goal
+            const goalsWithProgress = await Promise.all(data.goals.map(async goal => {
+                try {
+                    const progressResp = await fetch(`${API_BASE}/goals/${goal.id}/progress`);
+                    const progressData = await progressResp.json();
+                    return { ...goal, ...progressData };
+                } catch {
+                    return goal;
+                }
+            }));
+
+            goalsWithProgress.forEach(goal => {
+                const goalCard = createGoalCard(goal, true);
+                dayGoalsList.appendChild(goalCard);
+            });
+        }
+
+        dayGoalsModal.classList.add('active');
+    } catch (error) {
+        console.error('Error loading day goals:', error);
+    }
 }
 
 // API Functions
@@ -194,7 +322,9 @@ async function addGoal() {
         if (response.ok) {
             addGoalForm.reset();
             addGoalModal.classList.remove('active');
-            loadWeeklyGoals();
+
+            // Reload goals for current week
+            navigateToWeek(weekOffset);
         } else {
             alert('Failed to add goal');
         }
@@ -215,7 +345,12 @@ async function deleteGoal(goalId) {
         });
 
         if (response.ok) {
-            loadWeeklyGoals();
+            // Refresh goals for current view
+            if (selectedDate) {
+                openDayGoals(selectedDate);
+            } else {
+                navigateToWeek(weekOffset);
+            }
         } else {
             alert('Failed to delete goal');
         }
@@ -248,36 +383,13 @@ async function loadInsights() {
     }
 }
 
-async function loadWeeklyGoals() {
-    try {
-        const response = await fetch(`${API_BASE}/goals/weekly`);
-        const data = await response.json();
-
-        // Clear existing goals from calendar
-        document.querySelectorAll('.day-goals').forEach(day => {
-            day.innerHTML = '';
-        });
-
-        // Add goals to calendar
-        data.goals.forEach(goal => {
-            const dayElement = document.getElementById(`day-goals-${goal.goal_date}`);
-            if (dayElement) {
-                const goalCard = createGoalCard(goal);
-                dayElement.appendChild(goalCard);
-            }
-        });
-    } catch (error) {
-        console.error('Error loading weekly goals:', error);
-    }
-}
-
-function createGoalCard(goal) {
+function createGoalCard(goal, inModal = false) {
     const card = document.createElement('div');
     card.className = 'goal-card';
     card.style.borderLeft = `3px solid ${goal.habit_color}`;
 
     const achieved = goal.achieved;
-    const progress = goal.progress * 100;
+    const progress = (goal.progress || 0) * 100;
 
     card.innerHTML = `
         <div class="goal-header">
@@ -288,7 +400,7 @@ function createGoalCard(goal) {
             <div class="progress-bar">
                 <div class="progress-fill" style="width: ${progress}%; background-color: ${goal.habit_color}"></div>
             </div>
-            <span class="goal-count">${goal.completed}/${goal.target}</span>
+            <span class="goal-count">${goal.completed || 0}/${goal.target || 1}</span>
         </div>
         <div class="goal-status ${achieved ? 'achieved' : ''}">
             ${achieved ? '✓ Achieved!' : 'In progress'}
@@ -309,26 +421,7 @@ function updateStreakDisplay(habitId) {
     }, 500);
 }
 
-function updateWeekDisplay() {
-    // Calculate week label
-    const today = new Date();
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay() + (weekOffset * 7));
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-
-    if (weekOffset === 0) {
-        weekLabel.textContent = 'This Week';
-    } else if (weekOffset === -1) {
-        weekLabel.textContent = 'Last Week';
-    } else if (weekOffset === 1) {
-        weekLabel.textContent = 'Next Week';
-    } else {
-        weekLabel.textContent = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-    }
-
-    // Reload to get goals for new week
-    location.reload();
-}
+// Initial load for current week
+document.addEventListener('DOMContentLoaded', () => {
+    navigateToWeek(0);
+});

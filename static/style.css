@@ -369,11 +369,13 @@ header h1 {
     padding: 15px;
     min-height: 120px;
     transition: all 0.2s;
+    cursor: pointer;
 }
 
-.calendar-day:hover {
+.calendar-day.clickable:hover {
     transform: translateY(-3px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
 }
 
 .day-header {
@@ -478,6 +480,25 @@ header h1 {
 .goal-status.achieved {
     background: #6bcb77;
     color: white;
+}
+
+/* Day Goals List */
+.day-goals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.day-goals-list .goal-card {
+    max-width: none;
+}
+
+.day-goals-list .empty-state {
+    text-align: center;
+    padding: 20px;
+    color: #999;
 }
 
 /* Responsive */

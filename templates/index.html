@@ -56,7 +56,7 @@
 
             <div id="calendar" class="calendar-grid">
                 {% for day_date in week_dates %}
-                <div class="calendar-day" data-date="{{ day_date.isoformat() }}">
+                <div class="calendar-day clickable" data-date="{{ day_date.isoformat() }}">
                     <div class="day-header">
                         <div class="day-name">{{ ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][day_date.weekday()] }}</div>
                         <div class="day-date">{{ day_date.strftime("%m/%d") }}</div>
@@ -188,6 +188,36 @@
         </div>
     </div>
 
+    <!-- Day Goals Modal -->
+    <div id="day-goals-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="day-modal-title">Goals for Date</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div id="day-goals-list" class="day-goals-list">
+                <!-- Goals for selected day will be loaded here -->
+            </div>
+            <button id="add-goal-from-day" class="btn btn-primary">+ Add Goal for This Day</button>
+        </div>
+    </div>
+
+    <script>
+        // Current week info
+        window.currentWeekOffset = 0;
+        window.currentWeekDates = [
+            {% for day_date in week_dates %}
+            "{{ day_date.isoformat() }}",
+            {% endfor %}
+        ];
+
+        // Store habit data for modal
+        window.habits = [
+            {% for habit in habits %}
+            { "id": {{ habit.id }}, "name": "{{ habit.name }}", "color": "{{ habit.color }}" },
+            {% endfor %}
+        ];
+    </script>
     <script src="/static/app.js"></script>
 </body>
 </html>

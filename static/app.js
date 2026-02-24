@@ -28,13 +28,18 @@ const addGoalFromDayBtn = document.getElementById('add-goal-from-day');
 let weekOffset = 0;
 let selectedDate = null;
 let habits = [];
+let isInitialized = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Loaded');
     loadInsights();
-    fetchHabits();
-    navigateToWeek(0);
-    setupEventListeners();
+    fetchHabits().then(() => {
+        navigateToWeek(0);
+        setupEventListeners();
+        isInitialized = true;
+        console.log('Initialization complete');
+    });
 });
 
 // Fetch habits
@@ -43,6 +48,7 @@ async function fetchHabits() {
         const response = await fetch(`${API_BASE}/habits`);
         const data = await response.json();
         habits = data.habits || [];
+        console.log('Habits loaded:', habits);
         updateHabitInput();
     } catch (error) {
         console.error('Error fetching habits:', error);
@@ -74,20 +80,31 @@ function updateHabitInput() {
 
 // Event Listeners
 function setupEventListeners() {
+    console.log('Setting up event listeners');
+    
     // Add habit button
-    addHabitBtn.addEventListener('click', () => {
-        addHabitModal.classList.add('active');
-    });
+    if (addHabitBtn) {
+        addHabitBtn.addEventListener('click', () => {
+            console.log('Add habit button clicked');
+            addHabitModal.classList.add('active');
+        });
+    }
 
     // Add goal button
-    addGoalBtn.addEventListener('click', () => {
-        addGoalModal.classList.add('active');
-    });
+    if (addGoalBtn) {
+        addGoalBtn.addEventListener('click', () => {
+            console.log('Add goal button clicked');
+            addGoalModal.classList.add('active');
+        });
+    }
 
     // Close modals
     modalClose.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            e.target.closest('.modal').classList.remove('active');
+            const modal = e.target.closest('.modal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
         });
     });
 
@@ -101,16 +118,20 @@ function setupEventListeners() {
     });
 
     // Add habit form
-    addHabitForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await addHabit();
-    });
+    if (addHabitForm) {
+        addHabitForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await addHabit();
+        });
+    }
 
     // Add goal form
-    addGoalForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await addGoal();
-    });
+    if (addGoalForm) {
+        addGoalForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await addGoal();
+        });
+    }
 
     // Habit checkboxes
     document.addEventListener('change', async (e) => {
@@ -123,7 +144,7 @@ function setupEventListeners() {
 
     // Delete habit buttons
     document.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('btn-delete')) {
+        if (e.target.classList.contains('btn-delete') && !e.target.classList.contains('btn-delete-goal')) {
             const habitId = parseInt(e.target.dataset.habitId);
             if (confirm('Are you sure you want to delete this habit?')) {
                 await deleteHabit(habitId);
@@ -132,47 +153,63 @@ function setupEventListeners() {
     });
 
     // Refresh insights
-    refreshInsightsBtn.addEventListener('click', loadInsights);
+    if (refreshInsightsBtn) {
+        refreshInsightsBtn.addEventListener('click', loadInsights);
+    }
 
     // Week navigation
-    prevWeekBtn.addEventListener('click', () => {
-        weekOffset--;
-        navigateToWeek(weekOffset);
-    });
+    if (prevWeekBtn) {
+        prevWeekBtn.addEventListener('click', () => {
+            console.log('Previous week clicked, current offset:', weekOffset);
+            weekOffset--;
+            navigateToWeek(weekOffset);
+        });
+    }
 
-    nextWeekBtn.addEventListener('click', () => {
-        weekOffset++;
-        navigateToWeek(weekOffset);
-    });
+    if (nextWeekBtn) {
+        nextWeekBtn.addEventListener('click', () => {
+            console.log('Next week clicked, current offset:', weekOffset);
+            weekOffset++;
+            navigateToWeek(weekOffset);
+        });
+    }
 
     // Calendar day clicks
-    calendarGrid.addEventListener('click', (e) => {
-        const dayCard = e.target.closest('.calendar-day');
-        if (dayCard) {
-            const dateStr = dayCard.dataset.date;
-            openDayGoals(dateStr);
-        }
-    });
+    if (calendarGrid) {
+        calendarGrid.addEventListener('click', (e) => {
+            const dayCard = e.target.closest('.calendar-day');
+            if (dayCard) {
+                const dateStr = dayCard.dataset.date;
+                console.log('Calendar day clicked:', dateStr);
+                openDayGoals(dateStr);
+            }
+        });
+    }
 
     // Add goal from day modal
-    addGoalFromDayBtn.addEventListener('click', () => {
-        if (selectedDate) {
-            // Set the date in the add goal form
-            const goalDateInput = document.getElementById('goal-date');
-            if (goalDateInput) {
-                goalDateInput.value = selectedDate;
+    if (addGoalFromDayBtn) {
+        addGoalFromDayBtn.addEventListener('click', () => {
+            if (selectedDate) {
+                console.log('Add goal from day clicked, date:', selectedDate);
+                const goalDateInput = document.getElementById('goal-date');
+                if (goalDateInput) {
+                    goalDateInput.value = selectedDate;
+                }
+                dayGoalsModal.classList.remove('active');
+                addGoalModal.classList.add('active');
             }
-            dayGoalsModal.classList.remove('active');
-            addGoalModal.classList.add('active');
-        }
-    });
+        });
+    }
 }
 
 // Navigate to a specific week
 async function navigateToWeek(offset) {
+    console.log('Navigate to week, offset:', offset);
     weekOffset = offset;
 
     const startDate = getWeekStartDate(offset);
+    console.log('Week start date:', startDate);
+    
     const weekDates = [];
     for (let i = 0; i < 7; i++) {
         const date = new Date(startDate);
@@ -194,6 +231,7 @@ async function navigateToWeek(offset) {
     try {
         const response = await fetch(`${API_BASE}/goals?start_date=${startDateStr}&end_date=${endDateStr}`);
         const data = await response.json();
+        console.log('Goals loaded:', data.goals);
 
         // Clear existing goals from calendar
         document.querySelectorAll('.day-goals').forEach(day => {
@@ -216,6 +254,7 @@ async function navigateToWeek(offset) {
 
 // Rebuild calendar grid with new dates
 function rebuildCalendarGrid(weekDates) {
+    console.log('Rebuilding calendar grid for dates:', weekDates);
     calendarGrid.innerHTML = '';
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -279,6 +318,7 @@ function getWeekStartDate(offset) {
     const targetMonday = new Date(currentWeekMonday);
     targetMonday.setDate(currentWeekMonday.getDate() + (offset * 7));
     
+    console.log('Calculated week start date:', targetMonday, 'with offset:', offset);
     return targetMonday;
 }
 
@@ -295,6 +335,7 @@ async function openDayGoals(dateStr) {
     try {
         const response = await fetch(`${API_BASE}/goals?start_date=${dateStr}&end_date=${dateStr}`);
         const data = await response.json();
+        console.log('Day goals loaded:', data.goals);
 
         // Clear existing goals
         dayGoalsList.innerHTML = '';

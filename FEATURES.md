@@ -1,6 +1,38 @@
-# Habit Tracker AI - New Features Update
+# Habit Tracker AI - Interactive Calendar Update
 
-## 🎉 What's New
+## 🎉 Calendar Improvements
+
+### 🖱️ Clickable Calendar Days
+- Click on any date to see goals for that specific day
+- Opens a detailed modal showing all goals for that day
+- Add new goals directly from the day modal
+- Goals show progress and achievement status
+
+### 📅 Fixed Week Navigation
+- Previous/Next buttons now work properly
+- Click to navigate between weeks
+- Calendar updates with correct goals for each week
+- Week label updates dynamically (This Week, Last Week, or date range)
+
+### 🎯 Better Goal Management
+- View goals by day or week
+- Delete goals from day modal
+- Progress bars show achievement rate
+- Visual feedback on clickable dates
+
+## 🚀 How to Use
+
+### Clicking on Dates
+1. Click on any date in the calendar
+2. See all goals for that day in a modal
+3. Add goals for that day using "+ Add Goal for This Day"
+4. Delete goals from the modal
+
+### Using Week Navigation
+1. Click "Previous" to go to last week
+2. Click "Next" to go to next week
+3. Calendar updates with goals for the selected week
+4. Week label shows current range
 
 ### ✅ Weekly Goal Planning
 - Set goals for specific days or the entire week

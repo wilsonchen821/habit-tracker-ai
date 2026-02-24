@@ -144,7 +144,7 @@ function setupEventListeners() {
 
     // Delete habit buttons
     document.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('btn-delete') && !e.target.classList.contains('btn-delete-goal')) {
+        if ((e.target.classList.contains('btn-delete') || e.target.classList.contains('btn-delete-inline')) && !e.target.classList.contains('btn-delete-goal')) {
             const habitId = parseInt(e.target.dataset.habitId);
             if (confirm('Are you sure you want to delete this habit?')) {
                 await deleteHabit(habitId);

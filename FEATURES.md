@@ -1,131 +1,119 @@
-# Habit Tracker AI - Interactive Calendar Update
+# Habit Tracker AI - Critical Fixes (v1.2)
 
-## 🎉 Calendar Improvements
+## 🎉 All Issues Fixed
 
-### 🖱️ Clickable Calendar Days
-- Click on any date to see goals for that specific day
-- Opens a detailed modal showing all goals for that day
-- Add new goals directly from the day modal
-- Goals show progress and achievement status
+### 1. ✅ Week Navigation Fixed
+**Problem:** "Next Week" button was going to LAST week instead of next week
 
-### 📅 Fixed Week Navigation
-- Previous/Next buttons now work properly
-- Click to navigate between weeks
-- Calendar updates with correct goals for each week
-- Week label updates dynamically (This Week, Last Week, or date range)
+**Solution:** 
+- Fixed `getWeekStartDate()` function logic
+- Week offset now correctly calculates target dates
+- Next/Previous buttons work in both directions
 
-### 🎯 Better Goal Management
-- View goals by day or week
-- Delete goals from day modal
-- Progress bars show achievement rate
-- Visual feedback on clickable dates
-
-## 🚀 How to Use
-
-### Clicking on Dates
-1. Click on any date in the calendar
-2. See all goals for that day in a modal
-3. Add goals for that day using "+ Add Goal for This Day"
-4. Delete goals from the modal
-
-### Using Week Navigation
-1. Click "Previous" to go to last week
-2. Click "Next" to go to next week
-3. Calendar updates with goals for the selected week
-4. Week label shows current range
-
-### ✅ Weekly Goal Planning
-- Set goals for specific days or the entire week
-- Choose target count for each goal
-- Add optional notes to your goals
-
-### 📅 Calendar View
-- Visual weekly calendar showing all your goals
-- Navigate between weeks (Previous/Next buttons)
-- See goal progress with progress bars
-- Goals show as "✓ Achieved!" when completed
-
-### 📊 Goal vs Achievement Tracking
-- Track how well you meet your weekly goals
-- See completed/target count for each goal
-- Progress bars visualize achievement
-- AI insights now include goal analysis
-
-## 🎯 New Use Cases
-
-1. **Plan Your Week**: Set goals for the upcoming week
-2. **Track Progress**: See how well you're meeting your targets
-3. **Analyze Patterns**: AI compares goals vs actual performance
-4. **Adjust Goals**: Based on insights and achievements
-
-## 🔧 Technical Changes
-
-### Database
-- Added `goals` table for storing planned goals
-- Goal progress calculation functions
-- Weekly goals query
-
-### API
-- `POST /api/goals` - Create goals
-- `GET /api/goals/weekly` - Get weekly goals
-- `GET /api/goals/{id}/progress` - Get goal progress
-- `DELETE /api/goals/{id}` - Delete goals
-
-### Frontend
-- New weekly calendar grid
-- Add goal modal
-- Goal cards with progress bars
-- Week navigation buttons
-
-### AI
-- Updated insights to include goal analysis
-- Compares planned goals vs actual achievement
-- Provides recommendations for goal achievement
-
-## 🚀 How to Use
-
-### Setting Goals
-1. Click "+ Add Goal" button
-2. Select habit from dropdown
-3. Pick date and target count
-4. Add optional notes
-5. Click "Add Goal"
-
-### Using Calendar
-- View your week with all goals
-- Navigate between weeks
-- See progress and achievements
-
-### AI Insights
-- Now includes goal achievement analysis
-- Provides specific recommendations for meeting goals
-- Tracks goal vs actual performance
-
-## 🔧 Recent Fixes (v1.1)
-
-### Dynamic Calendar
-- Calendar grid now rebuilds dynamically when navigating weeks
-- Next/Previous week buttons properly update all dates
-- Dates accurately reflect past/present/future weeks
-- Week label shows correct date ranges
-
-### Habit Dropdown
-- Dynamically populated from API in real-time
-- Updates when new habits are created
-- Shows all available habits
-
-### Better Performance
-- Improved event delegation for calendar clicks
-- More reliable interactions
-- Optimized date calculations
-
-## 📝 Next Steps
-
-- [ ] Push updated code to GitHub
-- [ ] Update LinkedIn post with new features
-- [ ] Take screenshots of calendar/goal features
-- [ ] Document goal planning use cases
+**Test:** Click "Next Week" → dates show future week. Click "Previous Week" → dates show last week.
 
 ---
 
-**Updated by Niko 🦊 for Wilson**
+### 2. ✅ Habit Selection Improved
+**Problem:** Dropdown only showed few options, not user-friendly
+
+**Solution:**
+- Changed from `<select>` to `<input type="text">`
+- Added HTML5 `<datalist>` for autocomplete
+- Shows all habits when typing
+- Matches against all available habits
+
+**Test:** Click "+ Add Goal", type in habit field → see suggestions for all habits.
+
+---
+
+### 3. ✅ Today's Habits Synced with Calendar
+**Problem:** "Today's Habits" was separate, not integrated with weekly goals
+
+**Solution:**
+- Moved Today's Habits to display under "Weekly Goals" section
+- Created inline habit cards with:
+  - Checkbox for today's completion
+  - Streak badge
+  - Delete button
+  - Quick access for daily check-off
+- Habits sync with calendar view
+
+**Test:** See habits listed inline below calendar, easily accessible for daily tracking.
+
+---
+
+## 🚀 Complete Feature Set
+
+Now you have:
+- ✅ **Weekly Goal Planning** - Set goals for any day/week
+- ✅ **Interactive Calendar** - Click dates to see/add goals
+- ✅ **Dynamic Week Navigation** - Navigate past/present/future weeks
+- ✅ **Goal Progress Tracking** - Progress bars, completion counts
+- ✅ **AI Insights** - Analyzes goals vs achievements
+- ✅ **Daily Habit Check-off** - Quick inline habit tracking
+- ✅ **Streak Tracking** - Monitor consistency
+- ✅ **Statistics Dashboard** - Completion rates, total logs
+
+---
+
+## 🔧 Technical Details
+
+### Files Changed
+- `static/app.js` - Complete rewrite with dynamic calendar
+- `templates/index.html` - Moved habits section, changed to text input
+- `static/style.css` - Added inline habit styles
+
+### Database
+- Goals table stores planned activities
+- Progress calculation function
+- Weekly goals query with date filtering
+
+### API Endpoints
+- `POST /api/goals` - Create goals
+- `GET /api/goals` - Get all goals (with filters)
+- `GET /api/goals/weekly` - Get current week's goals
+- `GET /api/goals/{id}/progress` - Get goal progress
+- `DELETE /api/goals/{id}` - Delete goals
+
+---
+
+## 📖 How to Use
+
+### Week Navigation
+1. Click "Next Week" → See future goals
+2. Click "Previous Week" → See past goals
+3. Dates update dynamically
+
+### Add Goals
+1. Click "+ Add Goal" button
+2. Type habit name (autocomplete suggests all habits)
+3. Select date and target count
+4. Add optional notes
+5. Click "Add Goal"
+
+### Daily Tracking
+1. See "Quick Check - Today's Habits" under calendar
+2. Check off habits as you complete them
+3. Streaks update automatically
+
+### View Day Goals
+1. Click on any date in calendar
+2. See all goals for that day
+3. Add more goals for that day
+4. Delete goals from modal
+
+---
+
+## 🎯 Next Steps
+
+- [ ] Push to GitHub
+- [ ] Update LinkedIn post with all features
+- [ ] Take screenshots of completed features
+- [ ] Write final project documentation
+
+---
+
+**All critical bugs fixed! Ready for production use.** 🚀
+
+*Updated by Niko 🦊 for Wilson*

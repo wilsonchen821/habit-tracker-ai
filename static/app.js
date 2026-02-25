@@ -515,6 +515,49 @@ async function addGoal() {
     }
 }
 
+async function completeGoal(goal) {
+    const habitId = goal.habit_id;
+    const goalDate = goal.goal_date;
+
+    // Mark habit as completed for this day
+    try {
+        const response = await fetch(`${API_BASE}/logs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                habit_id: habitId,
+                completed: true
+            })
+        });
+
+        if (response.ok) {
+            // Update the goal card to show as achieved
+            const goalCard = document.querySelector(`.goal-card[data-goal-id="${goal.id}"]`);
+            if (goalCard) {
+                // Get goal progress to update completed count
+                const progressResp = await fetch(`${API_BASE}/goals/${goal.id}/progress`);
+                const progressData = await progressResp.json();
+                const newGoal = { ...goal, ...progressData, achieved: true };
+
+                // Recreate the card with achieved status
+                const newCard = createGoalCard(newGoal, false);
+                goalCard.innerHTML = newCard.innerHTML;
+                
+                // Add pulsing effect to show success
+                goalCard.classList.add('achieved-pulse');
+                setTimeout(() => {
+                    goalCard.classList.remove('achieved-pulse');
+                }, 1500);
+            }
+        } else {
+            alert('Failed to mark goal as completed');
+        }
+    } catch (error) {
+        console.error('Error completing goal:', error);
+        alert('Failed to mark goal as completed');
+    }
+}
+
 async function deleteGoal(goalId) {
     if (!confirm('Are you sure you want to delete this goal?')) {
         return;
@@ -572,10 +615,15 @@ function createGoalCard(goal, inModal = false) {
     const achieved = goal.achieved;
     const progress = (goal.progress || 0) * 100;
 
+    // Determine if goal is for today and can be completed
+    const today = new Date().toISOString().split('T')[0];
+    const isGoalForToday = goal.goal_date === today;
+    const canComplete = isGoalForToday && !achieved;
+
     card.innerHTML = `
         <div class="goal-header">
             <span class="goal-name">${goal.habit_name}</span>
-            <button class="btn-delete-goal" data-goal-id="${goal.id}">&times;</button>
+            <button class="btn-delete-goal ${inModal ? 'in-modal' : ''}" data-goal-id="${goal.id}">&times;</button>
         </div>
         <div class="goal-progress">
             <div class="progress-bar">
@@ -586,12 +634,27 @@ function createGoalCard(goal, inModal = false) {
         <div class="goal-status ${achieved ? 'achieved' : ''}">
             ${achieved ? '✓ Achieved!' : 'In progress'}
         </div>
+        ${!inModal && canComplete ? `
+            <div class="goal-actions">
+                <button class="btn-complete-goal" data-goal-id="${goal.id}" data-habit-id="${goal.habit_id}">
+                    <span class="btn-icon">✓</span> Complete
+                </button>
+            </div>
+        ` : ''}
     `;
 
     // Delete goal button handler
     const deleteBtn = card.querySelector('.btn-delete-goal');
     if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => deleteGoal(goal.id));
+        deleteBtn.addEventListener('click', () => deleteGoal(goal.id, inModal));
+    }
+
+    // Add event listener for complete button (if exists)
+    if (!inModal) {
+        const completeBtn = card.querySelector('.btn-complete-goal');
+        if (completeBtn) {
+            completeBtn.addEventListener('click', () => completeGoal(goal));
+        }
     }
 
     return card;

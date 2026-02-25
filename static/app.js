@@ -24,13 +24,9 @@ const dayModalTitle = document.getElementById('day-modal-title');
 const dayGoalsList = document.getElementById('day-goals-list');
 const addGoalFromDayBtn = document.getElementById('add-goal-from-day');
 
-// Today's habits dropdown and details
-const habitDropdown = document.getElementById('habit-dropdown');
-const selectedHabitDetails = document.getElementById('selected-habit-details');
-const selectedHabitName = document.getElementById('selected-habit-name');
-const deleteSelectedHabitBtn = document.getElementById('delete-selected-habit');
-const selectedHabitCheckbox = document.getElementById('selected-habit-checkbox');
-const selectedHabitStreak = document.getElementById('selected-habit-streak');
+// My Habits section
+const myHabitsSection = document.querySelector('.my-habits-section');
+const myHabitsList = document.getElementById('my-habits-list');
 
 // Current week offset (0 = current week)
 let weekOffset = 0;
@@ -44,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Loaded');
     loadInsights();
     fetchHabits().then(() => {
+        renderMyHabits();
         navigateToWeek(0);
         setupEventListeners();
         isInitialized = true;
@@ -58,86 +55,81 @@ async function fetchHabits() {
         const data = await response.json();
         habits = data.habits || [];
         console.log('Habits loaded:', habits);
-        updateHabitDropdown();
     } catch (error) {
         console.error('Error fetching habits:', error);
     }
 }
 
-// Update habit dropdown (for Today's section)
-function updateHabitDropdown() {
-    if (!habitDropdown) {
-        console.error('Habit dropdown not found');
+// Render My Habits section
+function renderMyHabits() {
+    if (!myHabitsList) {
+        console.error('My Habits list container not found');
         return;
     }
 
-    // Save current selection
-    const currentValue = habitDropdown.value;
+    myHabitsList.innerHTML = '';
 
-    habitDropdown.innerHTML = '<option value="">Select a habit to check off...</option>';
+    if (habits.length === 0) {
+        myHabitsList.innerHTML = '<div class="empty-state"><p>No habits yet. Add your first habit! 🚀</p></div>';
+        return;
+    }
 
-    habits.forEach(habit => {
-        const option = document.createElement('option');
-        option.value = habit.id;
-        option.textContent = habit.name;
-        
-        // Add streak info if available
-        const streak = window.streaks && window.streaks.find(s => s.id === habit.id);
-        if (streak && streak.current_streak > 0) {
-            option.textContent += ` (🔥 ${streak.current_streak} day streak)`;
-        }
-        
-        habitDropdown.appendChild(option);
+    // Get streaks and today's logs
+    const streaksMap = {};
+    window.streaks && window.streaks.forEach(s => {
+        streaksMap[s.id] = s.current_streak;
     });
 
-    // Restore selection if still valid
-    if (currentValue && habits.find(h => h.id === parseInt(currentValue))) {
-        habitDropdown.value = currentValue;
-    }
-}
+    const todayLogsMap = {};
+    window.todayLogs && Object.keys(window.todayLogs).forEach(habitId => {
+        todayLogsMap[habitId] = window.todayLogs[habitId];
+    });
 
-// Show habit details (from dropdown selection)
-function showHabitDetails(habitId) {
-    if (!habitId) {
-        hideHabitDetails();
-        return;
-    }
+    habits.forEach(habit => {
+        const habitCard = document.createElement('div');
+        habitCard.className = 'habit-card-inline';
+        habitCard.style.borderLeft = `4px solid ${habit.color}`;
+        habitCard.dataset.habitId = habit.id;
 
-    const habit = habits.find(h => h.id === habitId);
-    if (!habit) {
-        console.error('Habit not found:', habitId);
-        return;
-    }
+        const streak = streaksMap[habit.id];
+        const todayLog = todayLogsMap[habit.id];
 
-    selectedHabit = habit;
-    selectedHabitDetails.style.display = 'block';
-    selectedHabitDetails.style.borderLeft = `4px solid ${habit.color}`;
-    
-    // Update name
-    selectedHabitName.textContent = habit.name;
-    
-    // Update streak
-    const streak = window.streaks && window.streaks.find(s => s.id === habitId);
-    if (streak && streak.current_streak > 0) {
-        selectedHabitStreak.innerHTML = `<span class="streak-badge">🔥 ${streak.current_streak} day streak</span>`;
-    } else {
-        selectedHabitStreak.innerHTML = '';
-    }
-    
-    // Update checkbox
-    const todayLog = window.todayLogs && window.todayLogs[habitId];
-    selectedHabitCheckbox.checked = todayLog && todayLog.completed;
-    selectedHabitCheckbox.dataset.habitId = habitId;
-    
-    console.log('Showing habit details:', habit.name);
-}
+        habitCard.innerHTML = `
+            <div class="habit-header-inline">
+                <span class="habit-name-inline">${habit.name}</span>
+                <button class="btn-delete-inline" data-habit-id="${habit.id}">Delete</button>
+            </div>
+            <div class="habit-streak-inline">
+                ${streak && streak > 0 ? `<span class="streak-badge">🔥 ${streak} day streak</span>` : ''}
+            </div>
+            <div class="habit-status-inline">
+                <label class="checkbox">
+                    <input type="checkbox" data-habit-id="${habit.id}"
+                        ${todayLog && todayLog.completed ? 'checked' : ''}>
+                    <span>Completed today</span>
+                </label>
+            </div>
+        `;
 
-// Hide habit details
-function hideHabitDetails() {
-    selectedHabit = null;
-    selectedHabitDetails.style.display = 'none';
-    selectedHabitCheckbox.checked = false;
-    console.log('Hiding habit details');
+        // Add event listener for delete button
+        const deleteBtn = habitCard.querySelector('.btn-delete-inline');
+        deleteBtn.addEventListener('click', async (e) => {
+            const habitId = parseInt(e.target.dataset.habitId);
+            if (confirm('Are you sure you want to delete this habit?')) {
+                await deleteHabit(habitId);
+            }
+        });
+
+        // Add event listener for checkbox
+        const checkbox = habitCard.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', async (e) => {
+            const habitId = parseInt(e.target.dataset.habitId);
+            const completed = e.target.checked;
+            await logHabit(habitId, completed);
+        });
+
+        myHabitsList.appendChild(habitCard);
+    });
 }
 
 // Event Listeners
@@ -192,33 +184,6 @@ function setupEventListeners() {
         addGoalForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             await addGoal();
-        });
-    }
-
-    // Habit dropdown selection
-    if (habitDropdown) {
-        habitDropdown.addEventListener('change', () => {
-            const habitId = parseInt(habitDropdown.value);
-            showHabitDetails(habitId);
-        });
-    }
-
-    // Habit checkboxes (in selected habit details)
-    if (selectedHabitCheckbox) {
-        selectedHabitCheckbox.addEventListener('change', async (e) => {
-            if (selectedHabit) {
-                const completed = e.target.checked;
-                await logHabit(selectedHabit, completed);
-            }
-        });
-    }
-
-    // Delete selected habit button
-    if (deleteSelectedHabitBtn) {
-        deleteSelectedHabitBtn.addEventListener('click', async () => {
-            if (selectedHabit && confirm('Are you sure you want to delete this habit?')) {
-                await deleteHabit(selectedHabit);
-            }
         });
     }
 
@@ -457,7 +422,7 @@ async function addHabit() {
             addHabitForm.reset();
             addHabitModal.classList.remove('active');
             fetchHabits().then(() => {
-                updateHabitDropdown();
+                renderMyHabits();
             });
         } else {
             alert('Failed to add habit');
@@ -494,18 +459,18 @@ async function logHabit(habitId, completed) {
         });
 
         if (response.ok) {
-            // Update selected habit details if visible
-            if (selectedHabit && selectedHabit === habitId) {
-                const checkbox = document.getElementById('selected-habit-checkbox');
-                if (checkbox) {
-                    checkbox.checked = completed;
-                }
+            // Update checkbox in My Habits section
+            const checkbox = myHabitsList.querySelector(`input[data-habit-id="${habitId}"]`);
+            if (checkbox) {
+                checkbox.checked = completed;
             }
-        } else {
-            // Reload page to update streaks
+            
+            // Reload page after a short delay to update streaks
             setTimeout(() => {
                 location.reload();
             }, 500);
+        } else {
+            alert('Failed to log habit');
         }
     } catch (error) {
         console.error('Error logging habit:', error);

@@ -12,7 +12,7 @@ from database import (
     log_habit, get_habit_logs, get_all_logs, get_stats, get_habit_streaks,
     create_goal, get_goals, delete_goal, get_goal_progress, get_weekly_goals
 )
-from ai import get_glm_client
+from ai import get_ai_client, get_active_provider
 
 # Initialize app
 app = FastAPI(title="Habit Tracker AI")

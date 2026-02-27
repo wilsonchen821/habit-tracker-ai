@@ -37,7 +37,7 @@ class HabitLog(BaseModel):
     habit_id: int
     completed: bool
     notes: Optional[str] = None
-
+    date: Optional[str] = None  # Allow specific date logging
 class GoalCreate(BaseModel):
     habit_id: int
     goal_date: str  # YYYY-MM-DD

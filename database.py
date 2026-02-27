@@ -90,15 +90,16 @@ def delete_habit(habit_id: int) -> bool:
     return success
 
 # Habit log operations
-def log_habit(habit_id: int, completed: bool, notes: str = None) -> bool:
-    """Log a habit completion for today."""
-    today = date.today().isoformat()
+def log_habit(habit_id: int, completed: bool, date: str = None, notes: str = None) -> bool:
+    """Log a habit completion for a specific date (defaults to today)."""
+    if date is None:
+        date = date.today().isoformat()
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT OR REPLACE INTO habit_logs (habit_id, date, completed, notes)
         VALUES (?, ?, ?, ?)
-    """, (habit_id, today, completed, notes))
+    """, (habit_id, date, completed, notes))
     conn.commit()
     conn.close()
     return True

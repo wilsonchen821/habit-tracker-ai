@@ -221,6 +221,16 @@ function setupEventListeners() {
         });
     }
 
+    // Day habit checkboxes (dynamic delegation)
+    dayGoalsList.addEventListener('change', async (e) => {
+        if (e.target.classList.contains('day-habit-checkbox')) {
+            const habitId = parseInt(e.target.dataset.habitId);
+            const goalDate = e.target.dataset.goalDate;
+            const completed = e.target.checked;
+            await logHabitForDate(habitId, completed, goalDate);
+        }
+    });
+
     // Add goal from day modal
     if (addGoalFromDayBtn) {
         addGoalFromDayBtn.addEventListener('click', () => {
@@ -368,18 +378,18 @@ async function openDayGoals(dateStr) {
 
     // Load goals for this date
     try {
-        const response = await fetch(`${API_BASE}/goals?start_date=${dateStr}&end_date=${dateStr}`);
-        const data = await response.json();
-        console.log('Day goals loaded:', data.goals);
+        const goalsResponse = await fetch(`${API_BASE}/goals?start_date=${dateStr}&end_date=${dateStr}`);
+        const goalsData = await goalsResponse.json();
 
         // Clear existing goals
         dayGoalsList.innerHTML = '';
 
-        if (data.goals.length === 0) {
+        // Add goals section
+        if (goalsData.goals.length === 0) {
             dayGoalsList.innerHTML = '<p class="empty-state">No goals for this day</p>';
         } else {
             // Add goal progress to each goal
-            const goalsWithProgress = await Promise.all(data.goals.map(async goal => {
+            const goalsWithProgress = await Promise.all(goalsData.goals.map(async goal => {
                 try {
                     const progressResp = await fetch(`${API_BASE}/goals/${goal.id}/progress`);
                     const progressData = await progressResp.json();
@@ -395,9 +405,56 @@ async function openDayGoals(dateStr) {
             });
         }
 
+        // Add habits to complete for this date
+        const habitsSection = document.createElement('div');
+        habitsSection.className = 'day-habits-section';
+        habitsSection.innerHTML = `
+            <h3 class="day-habits-title">Habits for ${dateStr}</h3>
+            <div class="day-habits-list" id="day-habits-list-${dateStr}">
+                <!-- Habits will be loaded here -->
+            </div>
+        `;
+        dayGoalsList.appendChild(habitsSection);
+
+        // Load habits to complete for this date
+        const logsResponse = await fetch(`${API_BASE}/habits`);
+        const habitsData = await logsResponse.json();
+        const allHabits = habitsData.habits || [];
+
+        if (allHabits.length === 0) {
+            dayGoalsList.innerHTML += '<p class="empty-state" style="margin-top: 20px;">No habits to complete</p>';
+        } else {
+            const dayHabitsList = document.getElementById(`day-habits-list-${dateStr}`);
+            
+            allHabits.forEach(habit => {
+                const habitCard = document.createElement('div');
+                habitCard.className = 'day-habit-card';
+                habitCard.style.borderLeft = `3px solid ${habit.color}`;
+
+                // Check if habit is completed for this date
+                const todayLog = window.todayLogs && window.todayLogs[habit.id];
+                const isCompleted = todayLog && todayLog.completed;
+
+                habitCard.innerHTML = `
+                    <div class="day-habit-name">${habit.name}</div>
+                    <div class="day-habit-checkbox">
+                        <label class="checkbox">
+                            <input type="checkbox" 
+                                   data-habit-id="${habit.id}" 
+                                   data-goal-date="${dateStr}"
+                                   ${isCompleted ? 'checked' : ''}>
+                            <span>${isCompleted ? 'Completed' : 'Mark as completed'}</span>
+                        </label>
+                    </div>
+                `;
+
+                dayHabitsList.appendChild(habitCard);
+            });
+        }
+
         dayGoalsModal.classList.add('active');
     } catch (error) {
-        console.error('Error loading day goals:', error);
+        console.error('Error loading day data:', error);
     }
 }
 
